@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>게시글 목록</title>
+    <style>
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #f4f7f6;
+        margin: 0;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      h1 {
+        color: #333;
+      }
+      #post-list {
+        width: 100%;
+        max-width: 600px;
+      }
+      /* 개별 게시글 아이템 스타일 */
+      .post-item {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 15px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        transition: transform 0.2s;
+      }
+      .post-item:hover {
+        transform: translateY(-3px);
+      }
+      .post-item h3 {
+        margin: 10px 0;
+        color: #007bff;
+      }
+      .post-item p {
+        color: #444;
+        line-height: 1.6;
+      }
+      .info-text {
+        font-size: 0.85em;
+        color: #888;
+      }
+      .date-text {
+        font-size: 0.8em;
+        color: #aaa;
+        text-align: right;
+        display: block;
+      }
+      .loading {
+        text-align: center;
+        color: #888;
+        font-style: italic;
+        margin-top: 50px;
+      }
+
+      #write-btn {
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        padding: 10px 18px;
+        font-size: 14px;
+        cursor: pointer;
+        margin-bottom: 20px;
+        transition: background-color 0.2s;
+      }
+
+      #write-btn:hover {
+        background-color: #0056b3;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>게시판 목록</h1>
+
+
+    <button id="write-btn">글쓰기</button>
+
+    <div id="post-list" class="loading">데이터를 불러오는 중입니다...</div>
+
+    <script>
+      async function loadPosts() {
+        try {
+          // 1. FastAPI 서버의 /posts/ 엔드포인트 호출
+          const response = await fetch("/posts/posts/");
+
+          if (!response.ok) {
+            throw new Error(
+              "데이터를 불러오는데 실패했습니다. (Status: " +
+                response.status +
+                ")"
+            );
+          }
+
+          // 2. JSON 데이터 변환
+          const posts = await response.json();
+          const listDiv = document.getElementById("post-list");
+
+          // 3. 데이터가 비어있을 경우
+          if (!posts || posts.length === 0) {
+            listDiv.innerHTML =
+              '<p class="loading">등록된 게시글이 없습니다.</p>';
+            listDiv.classList.remove("loading");
+            return;
+          }
+
+          // 4. 데이터를 HTML 문자열로 변환하여 삽입
+          listDiv.classList.remove("loading");
+          listDiv.innerHTML = posts
+            .map((post) => {
+              // 서버의 datetime 문자열을 읽기 쉬운 형태로 변환
+              const date = post.created_at
+                ? new Date(post.created_at).toLocaleString("ko-KR")
+                : "날짜 정보 없음";
+
+              return `
+                        <div class="post-item">
+                            <div class="info-text">번호: ${post.id} | 작성자 ID: ${post.author_id}</div>
+                            <h3>${post.title}</h3>
+                            <p>${post.content}</p>
+                            <span class="date-text">작성일: ${date}</span>
+                        </div>
+                    `;
+            })
+            .join("");
+        } catch (error) {
+          console.error("Error:", error);
+          const listDiv = document.getElementById("post-list");
+          listDiv.innerHTML = `<p style="color: red; text-align: center;">오류 발생: ${error.message}</p>`;
+        }
+      }
+
+      // 글쓰기 버튼 클릭 시 이동
+      document.getElementById("write-btn").onclick = () => {
+        window.location.href = "/posts/create";
+      };
+
+      // 페이지 로드가 완료되면 loadPosts 함수 실행
+      window.onload = loadPosts;
+    </script>
+  </body>
+</html>

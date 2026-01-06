@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>로그인 - FastAPI 연동</title>
+</head>
+<body>
+    <h2>로그인</h2>
+    
+    <form id="loginForm">
+        <div>
+            <label for="email">이메일:</label>
+            <input type="email" id="email" name="email" required autocomplete="email">
+        </div>
+        <br>
+        <div>
+            <label for="password">비밀번호:</label>
+            <input type="password" id="password" name="password" required autocomplete="current-password">
+        </div>
+        <br>
+        <button type="submit" id="loginBtn">로그인</button>
+    </form>
+
+    <p id="message" style="margin-top: 10px; font-weight: bold;"></p>
+
+    <script>
+        const loginForm = document.getElementById('loginForm');
+        const messageElement = document.getElementById('message');
+        const loginBtn = document.getElementById('loginBtn');
+
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault(); // 폼 제출 시 페이지 새로고침 방지
+
+            // 버튼 비활성화 (중복 클릭 방지)
+            loginBtn.disabled = true;
+            messageElement.innerText = '로그인 시도 중...';
+            messageElement.style.color = 'blue';
+
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                // FastAPI 백엔드의 @router.post("/login")과 연동
+                // main.py에서 prefix를 설정하지 않았으므로 '/login' 경로를 사용합니다.
+                const response = await fetch('/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: email,       // schemas/auth.py의 LoginRequest 필드명과 일치해야 함
+                        password: password
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // 1. 로그인 성공 (200 OK)
+                    // TokenResponse 스키마의 access_token 저장
+                    localStorage.setItem('accessToken', data.access_token);
+                    
+                    messageElement.style.color = 'green';
+                    messageElement.innerText = '✅ 로그인 성공! 잠시 후 이동합니다.';
+                    console.log('JWT 발급 완료:', data.access_token);
+                    
+                    // 1초 뒤 메인 페이지 또는 대시보드로 이동
+                    setTimeout(() => {
+                        window.location.href = '/posts/posts/view/'; 
+                    }, 1000);
+                } else {
+                    // 2. 로그인 실패 (401 Unauthorized 등)
+                    messageElement.style.color = 'red';
+                    // auth.py에서 raise HTTPException(detail="인증실패") 한 내용이 출력됨
+                    messageElement.innerText = '❌ 실패: ' + (data.detail || '이메일 또는 비밀번호를 확인하세요.');
+                    loginBtn.disabled = false;
+                }
+            } catch (error) {
+                // 3. 서버 연결 오류
+                messageElement.style.color = 'red';
+                messageElement.innerText = '⚠️ 서버에 연결할 수 없습니다. (백엔드 실행 여부 확인)';
+                loginBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
