@@ -5,6 +5,7 @@ from jose import jwt, JWTError
 SECRET_KEY = "1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
+REFRESH_TOKEN_EXPIRE_DAYS = 7
 
 # 쉽게 비유하자면, **인코딩은 '암호화해서 편지 봉투에 담는 것'**이고, **디코딩은 '봉투를 뜯어서 내용을 해석하는 것
 # 인코딩: 데이터를 특정 형식(포맷)으로 변환하는 과정  예시 (JWT):사용자 정보({"id": "user123"})를 jwt.encode를 통해 eyJhbGciOiJIUzI1... 같은 복잡한 문자열로 만드는 것,
@@ -29,6 +30,23 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
 
     # jwt.encode 함수가 데이터 + 비밀키 + 알고리즘을 섞어서 암호화된 긴 문자열을 만들어냅니다.
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+#refresh token의 경우 유저를 인식할 수 있는 최소한의 정보만 보통 담는다.
+#access token보다 만료기간이 긴 경우가 대부분이다.
+def create_refresh_token(data:dict)->str:
+    
+    user_id=data["user_id"]
+    
+    expire =datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    
+    refresh_payload={
+        "user_id": user_id,
+        "exp":expire,
+        "type":"refresh"
+    }
+    
+    encoded_jwt=jwt.encode(refresh_payload, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
 
